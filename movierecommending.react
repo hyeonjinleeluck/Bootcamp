@@ -1,0 +1,37 @@
+import React, { useState, useEffect } from 'react';
+import Header from './components/Header';
+import SearchBar from './components/SearchBar';
+import MovieGrid from './components/MovieGrid';
+import MovieModal from './components/MovieModal';
+import Loading from './components/Loading';
+import './App.css';
+
+function App() {
+  // 상태 관리
+  const [movies, setMovies] = useState({
+    trending: [],
+    recommended: [],
+    search: []
+  });
+  const [loading, setLoading] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // API 정보
+  const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; // 데모용 공개 API 키
+  const BASE_URL = 'https://api.themoviedb.org/3';
+
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    getTrendingMovies();
+    getRecommendedMovies();
+  }, []);
+
+  // 인기 영화 가져오기
+  const getTrendingMovies = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/trending/movie/week?api_key=${API_KEY}&language=ko-KR`);
+      const data = await response.json();
+      setMovies(prev => ({ ...prev, tr

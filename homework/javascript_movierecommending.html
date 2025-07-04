@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>영화 추천 서비스</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -47,10 +50,16 @@
         #search-input {
             flex-grow: 1;
             padding: 10px 15px;
-            border: none;
+            border: 1px solid #333;
             background-color: #333;
             color: #fff;
             border-radius: 4px 0 0 4px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #search-input:focus {
+            border-color: #e50914;
         }
         
         #search-button {
@@ -60,12 +69,20 @@
             border: none;
             cursor: pointer;
             border-radius: 0 4px 4px 0;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        #search-button:hover {
+            background-color: #f6121D;
         }
         
         .section-title {
             font-size: 24px;
             margin-bottom: 20px;
             color: #e5e5e5;
+            border-left: 4px solid #e50914;
+            padding-left: 10px;
         }
         
         .movie-grid {
@@ -79,18 +96,21 @@
             background-color: #242424;
             border-radius: 6px;
             overflow: hidden;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
+            position: relative;
         }
         
         .movie-card:hover {
             transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
         }
         
         .movie-poster {
             width: 100%;
             height: 300px;
             object-fit: cover;
+            background-color: #333;
         }
         
         .movie-info {
@@ -113,6 +133,7 @@
         .rating {
             color: #ffc107;
             margin-top: 5px;
+            font-weight: bold;
         }
         
         .modal {
@@ -122,59 +143,78 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.85);
             z-index: 10;
             overflow-y: auto;
+            align-items: center;
+            justify-content: center;
         }
         
         .modal-content {
-            background-color: #242424;
-            width: 80%;
+            background-color: #181818;
+            width: 90%;
             max-width: 800px;
-            margin: 50px auto;
+            margin: 5% auto;
             border-radius: 10px;
             overflow: hidden;
-            animation: modalOpen 0.4s;
+            animation: modalOpen 0.4s ease-out;
+            position: relative;
         }
         
         @keyframes modalOpen {
-            from {opacity: 0; transform: translateY(-50px);}
-            to {opacity: 1; transform: translateY(0);}
+            from {opacity: 0; transform: scale(0.9);}
+            to {opacity: 1; transform: scale(1);}
         }
         
         .modal-header {
             position: relative;
+            height: 450px;
         }
         
         .backdrop {
             width: 100%;
-            height: 300px;
+            height: 100%;
             object-fit: cover;
-            opacity: 0.7;
+        }
+
+        .backdrop-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, #181818 20%, transparent 100%);
         }
         
         .close-button {
             position: absolute;
             top: 15px;
             right: 15px;
-            font-size: 24px;
+            font-size: 28px;
             color: white;
-            background: rgba(0, 0, 0, 0.5);
-            width: 30px;
-            height: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .close-button:hover {
+            transform: scale(1.1);
         }
         
         .modal-body {
-            padding: 20px;
+            padding: 20px 30px;
+            transform: translateY(-80px);
         }
         
         .modal-title {
-            font-size: 24px;
+            font-size: 32px;
+            font-weight: bold;
             margin-bottom: 10px;
         }
         
@@ -189,6 +229,7 @@
             object-fit: cover;
             margin-right: 20px;
             border-radius: 4px;
+            flex-shrink: 0;
         }
         
         .modal-details {
@@ -214,6 +255,7 @@
         .details-label {
             width: 100px;
             color: #aaa;
+            flex-shrink: 0;
         }
         
         .similar-movies {
@@ -245,6 +287,7 @@
             height: 180px;
             object-fit: cover;
             border-radius: 4px;
+            background-color: #333;
         }
         
         .similar-name {
@@ -257,13 +300,28 @@
         
         .loading {
             display: none;
-            text-align: center;
-            padding: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 99;
+            justify-content: center;
+            align-items: center;
         }
-        
-        .loading img {
+
+        .spinner {
             width: 50px;
             height: 50px;
+            border: 5px solid #444;
+            border-top-color: #e50914;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
         @media (max-width: 768px) {
@@ -277,6 +335,7 @@
             
             .modal-content {
                 width: 95%;
+                margin: 5% auto;
             }
             
             .modal-info {
@@ -284,8 +343,14 @@
             }
             
             .modal-poster {
-                margin-right: 0;
-                margin-bottom: 15px;
+                margin: 0 auto 15px;
+            }
+
+            .modal-header {
+                height: 300px;
+            }
+            .modal-body {
+                padding: 15px;
             }
         }
     </style>
@@ -301,40 +366,34 @@
             <button id="search-button">검색</button>
         </div>
         
-        <div class="loading" id="loading">
-            <img src="/api/placeholder/50/50" alt="로딩 중...">
-        </div>
-        
-        <section id="trending-section">
-            <h2 class="section-title">인기 영화</h2>
-            <div class="movie-grid" id="trending-movies"></div>
-        </section>
-        
         <section id="search-section" style="display: none;">
             <h2 class="section-title">검색 결과</h2>
             <div class="movie-grid" id="search-results"></div>
         </section>
         
+        <section id="trending-section">
+            <h2 class="section-title">주간 인기 영화</h2>
+            <div class="movie-grid" id="trending-movies"></div>
+        </section>
+        
         <section id="recommended-section">
-            <h2 class="section-title">추천 영화</h2>
+            <h2 class="section-title">높은 평점의 추천 영화</h2>
             <div class="movie-grid" id="recommended-movies"></div>
         </section>
     </div>
     
     <div class="modal" id="movie-modal">
         <div class="modal-content">
-            <div class="modal-header" id="modal-header">
-                <img src="/api/placeholder/800/300" alt="Backdrop" class="backdrop" id="modal-backdrop">
-                <div class="close-button" id="close-modal">&times;</div>
-            </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Modal content will be dynamically inserted here -->
-            </div>
+            <!-- Modal content will be dynamically inserted here -->
         </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
     </div>
 
     <script>
-        // API 키와 기본 URL (실제로는 환경 변수 등으로 관리하는 것이 좋습니다)
+        // API 키와 기본 URL
         const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; // 데모용 공개 API 키
         const BASE_URL = 'https://api.themoviedb.org/3';
         const IMG_URL = 'https://image.tmdb.org/t/p/w500';
@@ -348,119 +407,44 @@
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
         const modal = document.getElementById('movie-modal');
-        const closeModal = document.getElementById('close-modal');
-        const modalBody = document.getElementById('modal-body');
-        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalContent = document.querySelector('.modal-content');
         const loadingEl = document.getElementById('loading');
 
-        // 영화 데이터 저장 객체
-        let currentMovies = {
-            trending: [],
-            recommended: [],
-            search: []
+        // --- 유틸리티 함수 ---
+        const fetchAPI = async (endpoint) => {
+            showLoading();
+            try {
+                const response = await fetch(`${BASE_URL}/${endpoint}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Fetching ${endpoint} failed:`, error);
+                return null;
+            } finally {
+                hideLoading();
+            }
         };
 
-        // 페이지 로드 시 실행
-        document.addEventListener('DOMContentLoaded', () => {
-            getTrendingMovies();
-            getRecommendedMovies();
-            
-            // 이벤트 리스너 등록
-            searchButton.addEventListener('click', searchMovies);
-            searchInput.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') searchMovies();
-            });
-            closeModal.addEventListener('click', () => {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            });
-            
-            // 모달 외부 클릭 시 닫기
-            window.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            });
-        });
+        const showLoading = () => loadingEl.style.display = 'flex';
+        const hideLoading = () => loadingEl.style.display = 'none';
 
-        // 인기 영화 가져오기
-        async function getTrendingMovies() {
-            showLoading();
-            try {
-                const response = await fetch(`${BASE_URL}/trending/movie/week?api_key=${API_KEY}&language=ko-KR`);
-                const data = await response.json();
-                currentMovies.trending = data.results;
-                displayMovies(data.results, trendingMoviesEl);
-            } catch (error) {
-                console.error('인기 영화 로딩 중 오류:', error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // 추천 영화 가져오기 (인기도와 평점 기준으로 랜덤하게 선택)
-        async function getRecommendedMovies() {
-            showLoading();
-            try {
-                // 높은 평점의 영화 가져오기
-                const response = await fetch(`${BASE_URL}/discover/movie?api_key=${API_KEY}&language=ko-KR&sort_by=vote_average.desc&vote_count.gte=1000&page=1`);
-                const data = await response.json();
-                
-                // 결과 중 무작위로 8개 선택
-                const shuffled = data.results.sort(() => 0.5 - Math.random());
-                const selected = shuffled.slice(0, 8);
-                
-                currentMovies.recommended = selected;
-                displayMovies(selected, recommendedMoviesEl);
-            } catch (error) {
-                console.error('추천 영화 로딩 중 오류:', error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // 영화 검색
-        async function searchMovies() {
-            const query = searchInput.value.trim();
-            if (!query) return;
-            
-            showLoading();
-            searchSection.style.display = 'block';
-            
-            try {
-                const response = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=ko-KR&query=${encodeURIComponent(query)}&page=1`);
-                const data = await response.json();
-                
-                currentMovies.search = data.results;
-                if (data.results.length > 0) {
-                    displayMovies(data.results, searchResultsEl);
-                    // 검색 결과로 스크롤
-                    searchSection.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                    searchResultsEl.innerHTML = '<p>검색 결과가 없습니다.</p>';
-                }
-            } catch (error) {
-                console.error('영화 검색 중 오류:', error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // 영화 목록 표시
+        // --- 영화 목록 렌더링 ---
         function displayMovies(movies, container) {
             container.innerHTML = '';
+            if (!movies || movies.length === 0) {
+                container.innerHTML = '<p>영화를 찾을 수 없습니다.</p>';
+                return;
+            }
             
             movies.forEach(movie => {
                 const { id, title, poster_path, release_date, vote_average } = movie;
-                const year = release_date ? release_date.split('-')[0] : '정보 없음';
+                const year = release_date ? release_date.split('-')[0] : 'N/A';
                 
                 const movieEl = document.createElement('div');
                 movieEl.classList.add('movie-card');
-                movieEl.dataset.id = id;
                 
                 movieEl.innerHTML = `
-                    <img src="${poster_path ? IMG_URL + poster_path : '/api/placeholder/200/300'}" alt="${title}" class="movie-poster">
+                    <img src="${poster_path ? IMG_URL + poster_path : `https://placehold.co/500x750/242424/FFF?text=${encodeURIComponent(title)}`}" alt="${title}" class="movie-poster" loading="lazy">
                     <div class="movie-info">
                         <h3 class="movie-title">${title}</h3>
                         <div class="movie-year">${year}</div>
@@ -473,117 +457,103 @@
             });
         }
 
-        // 영화 상세 정보 열기
+        // --- 영화 상세 정보 모달 ---
         async function openMovieDetails(movieId) {
-            showLoading();
-            try {
-                const [movieResponse, creditsResponse, similarResponse] = await Promise.all([
-                    fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=ko-KR`),
-                    fetch(`${BASE_URL}/movie/${movieId}/credits?api_key=${API_KEY}`),
-                    fetch(`${BASE_URL}/movie/${movieId}/similar?api_key=${API_KEY}&language=ko-KR`)
-                ]);
-                
-                const movieData = await movieResponse.json();
-                const creditsData = await creditsResponse.json();
-                const similarData = await similarResponse.json();
-                
-                // 감독 찾기
-                const director = creditsData.crew.find(person => person.job === 'Director');
-                
-                // 주요 배우 5명까지
-                const mainCast = creditsData.cast.slice(0, 5).map(actor => actor.name).join(', ');
-                
-                // 장르
-                const genres = movieData.genres.map(genre => genre.name).join(', ');
-                
-                // 비슷한 영화 5개
-                const similarMovies = similarData.results.slice(0, 5);
-                
-                // 모달 콘텐츠 구성
-                modalBackdrop.src = movieData.backdrop_path 
-                    ? BACKDROP_URL + movieData.backdrop_path 
-                    : '/api/placeholder/800/300';
-                
-                modalBody.innerHTML = `
-                    <h2 class="modal-title">${movieData.title} ${movieData.release_date ? `(${movieData.release_date.split('-')[0]})` : ''}</h2>
-                    
+            const movieData = await fetchAPI(`movie/${movieId}?api_key=${API_KEY}&language=ko-KR&append_to_response=credits,similar`);
+            if (!movieData) return;
+
+            const director = movieData.credits.crew.find(p => p.job === 'Director');
+            const mainCast = movieData.credits.cast.slice(0, 5).map(a => a.name).join(', ');
+            const genres = movieData.genres.map(g => g.name).join(', ');
+            const similarMovies = movieData.similar.results.slice(0, 6);
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <img src="${movieData.backdrop_path ? BACKDROP_URL + movieData.backdrop_path : 'https://placehold.co/800x450/181818/FFF?text=No+Backdrop'}" alt="Backdrop" class="backdrop">
+                    <div class="backdrop-overlay"></div>
+                    <div class="close-button" id="close-modal">&times;</div>
+                </div>
+                <div class="modal-body">
+                    <h2 class="modal-title">${movieData.title} (${movieData.release_date ? movieData.release_date.split('-')[0] : ''})</h2>
                     <div class="modal-info">
-                        <img src="${movieData.poster_path ? IMG_URL + movieData.poster_path : '/api/placeholder/150/225'}" class="modal-poster" alt="${movieData.title}">
-                        
+                        <img src="${movieData.poster_path ? IMG_URL + movieData.poster_path : 'https://placehold.co/150x225/181818/FFF?text=No+Poster'}" class="modal-poster" alt="${movieData.title}">
                         <div class="modal-details">
                             ${movieData.tagline ? `<div class="tagline">"${movieData.tagline}"</div>` : ''}
-                            
                             <div class="overview">${movieData.overview || '줄거리 정보가 없습니다.'}</div>
-                            
-                            <div class="details-row">
-                                <div class="details-label">장르</div>
-                                <div>${genres || '정보 없음'}</div>
-                            </div>
-                            
-                            <div class="details-row">
-                                <div class="details-label">감독</div>
-                                <div>${director ? director.name : '정보 없음'}</div>
-                            </div>
-                            
-                            <div class="details-row">
-                                <div class="details-label">출연</div>
-                                <div>${mainCast || '정보 없음'}</div>
-                            </div>
-                            
-                            <div class="details-row">
-                                <div class="details-label">평점</div>
-                                <div>★ ${movieData.vote_average ? movieData.vote_average.toFixed(1) : 'N/A'} / 10</div>
-                            </div>
-                            
-                            <div class="details-row">
-                                <div class="details-label">상영 시간</div>
-                                <div>${movieData.runtime ? `${movieData.runtime}분` : '정보 없음'}</div>
-                            </div>
+                            <div class="details-row"><div class="details-label">장르</div><div>${genres || '정보 없음'}</div></div>
+                            <div class="details-row"><div class="details-label">감독</div><div>${director ? director.name : '정보 없음'}</div></div>
+                            <div class="details-row"><div class="details-label">출연</div><div>${mainCast || '정보 없음'}</div></div>
+                            <div class="details-row"><div class="details-label">평점</div><div>★ ${movieData.vote_average ? movieData.vote_average.toFixed(1) : 'N/A'} / 10</div></div>
+                            <div class="details-row"><div class="details-label">상영 시간</div><div>${movieData.runtime ? `${movieData.runtime}분` : '정보 없음'}</div></div>
                         </div>
                     </div>
-                    
                     <div class="similar-movies">
                         <h3 class="similar-title">비슷한 영화</h3>
                         <div class="similar-grid" id="similar-grid">
                             ${similarMovies.map(movie => `
                                 <div class="similar-card" data-id="${movie.id}">
-                                    <img src="${movie.poster_path ? IMG_URL + movie.poster_path : '/api/placeholder/120/180'}" alt="${movie.title}" class="similar-poster">
+                                    <img src="${movie.poster_path ? IMG_URL + movie.poster_path : `https://placehold.co/200x300/242424/FFF?text=${encodeURIComponent(movie.title)}`}" alt="${movie.title}" class="similar-poster" loading="lazy">
                                     <div class="similar-name">${movie.title}</div>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-                `;
-                
-                // 비슷한 영화 클릭 이벤트 등록
-                const similarCards = document.querySelectorAll('.similar-card');
-                similarCards.forEach(card => {
-                    card.addEventListener('click', (e) => {
-                        e.stopPropagation(); // 이벤트 버블링 방지
-                        openMovieDetails(card.dataset.id);
-                    });
-                });
-                
-                // 모달 표시
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden'; // 스크롤 방지
-                
-            } catch (error) {
-                console.error('영화 상세 정보 로딩 중 오류:', error);
-            } finally {
-                hideLoading();
+                </div>`;
+            
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            document.getElementById('close-modal').addEventListener('click', closeModalFunction);
+            document.querySelectorAll('.similar-card').forEach(card => {
+                card.addEventListener('click', () => openMovieDetails(card.dataset.id));
+            });
+        }
+        
+        const closeModalFunction = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        };
+
+        // --- 데이터 로딩 및 이벤트 핸들링 ---
+        async function initializeApp() {
+            const trendingData = await fetchAPI(`trending/movie/week?api_key=${API_KEY}&language=ko-KR`);
+            if (trendingData) displayMovies(trendingData.results, trendingMoviesEl);
+            
+            const recommendedData = await fetchAPI(`discover/movie?api_key=${API_KEY}&language=ko-KR&sort_by=vote_average.desc&vote_count.gte=1000&page=1`);
+            if (recommendedData) {
+                const selected = recommendedData.results.sort(() => 0.5 - Math.random()).slice(0, 12);
+                displayMovies(selected, recommendedMoviesEl);
             }
         }
 
-        // 로딩 표시
-        function showLoading() {
-            loadingEl.style.display = 'block';
+        async function handleSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                searchSection.style.display = 'none';
+                return;
+            };
+            
+            searchSection.style.display = 'block';
+            const searchData = await fetchAPI(`search/movie?api_key=${API_KEY}&language=ko-KR&query=${encodeURIComponent(query)}`);
+            if (searchData) {
+                displayMovies(searchData.results, searchResultsEl);
+                searchSection.scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
-        // 로딩 숨기기
-        function hideLoading() {
-            loadingEl.style.display = 'none';
-        }
+        // --- 이벤트 리스너 등록 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            
+            searchButton.addEventListener('click', handleSearch);
+            searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') handleSearch();
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModalFunction();
+            });
+        });
     </script>
 </body>
 </html>
